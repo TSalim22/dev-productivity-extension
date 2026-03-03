@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Student Focus Timer",
+  "version": "1.0.0",
+  "description": "A focus timer with a local Python statistics service.",
+  "permissions": ["activeTab", "storage", "alarms"],
+  "host_permissions": ["http://127.0.0.1:5050/*"],
+  "action": {"default_popup": "popup.html"},
+  "background": {"service_worker": "background.js"}
+}
