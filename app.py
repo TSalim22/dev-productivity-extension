@@ -1,6 +1,7 @@
 import os
 import secrets
 import sqlite3
+import uuid
 from pathlib import Path
 from flask import Flask, request, jsonify, render_template
 
@@ -24,6 +25,10 @@ def create_app(config=None):
 
     with connect() as connection:
         connection.execute('CREATE TABLE IF NOT EXISTS sessions (id INTEGER PRIMARY KEY, domain TEXT NOT NULL, minutes INTEGER NOT NULL, created TEXT DEFAULT CURRENT_TIMESTAMP)')
+        columns = {row[1] for row in connection.execute('PRAGMA table_info(sessions)')}
+        if 'session_id' not in columns:
+            connection.execute('ALTER TABLE sessions ADD COLUMN session_id TEXT')
+        connection.execute('CREATE UNIQUE INDEX IF NOT EXISTS session_identity ON sessions(session_id)')
 
     @app.get('/')
     def index():
@@ -37,10 +42,16 @@ def create_app(config=None):
             return jsonify(error='Invalid local service key.'), 401
         data = request.get_json(silent=True) or {}
         domain, minutes = data.get('domain'), data.get('minutes')
+        session_id = data.get('session_id')
         if not isinstance(domain,str) or not domain or len(domain)>253 or type(minutes) is not int or not 1<=minutes<=180:
             return jsonify(error='Invalid session.'), 400
+        try:
+            if not isinstance(session_id,str) or str(uuid.UUID(session_id)) != session_id:
+                raise ValueError()
+        except ValueError:
+            return jsonify(error='Invalid session identity.'), 400
         with connect() as connection:
-            connection.execute('INSERT INTO sessions (domain,minutes) VALUES (?,?)', (domain,minutes))
+            connection.execute('INSERT OR IGNORE INTO sessions (session_id,domain,minutes) VALUES (?,?,?)', (session_id,domain,minutes))
         return jsonify(saved=True), 201
 
     return app

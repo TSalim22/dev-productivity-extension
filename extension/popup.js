@@ -5,6 +5,8 @@ async function refresh() {
   status.textContent = data.session ? `Focusing on ${data.session.domain} until ${new Date(data.session.end).toLocaleTimeString()}` : (data.lastMessage || 'Ready for a focused session.');
 }
 document.getElementById('start').addEventListener('click', async () => {
+  const active = await chrome.storage.local.get('session');
+  if (active.session) { status.textContent = 'Cancel the current session before starting another.'; return; }
   const minutes = Number(document.getElementById('minutes').value);
   const key = document.getElementById('key').value.trim();
   if (!Number.isInteger(minutes) || minutes < 1 || minutes > 180 || !key) {
@@ -16,7 +18,7 @@ document.getElementById('start').addEventListener('click', async () => {
     const url = new URL(tab.url);
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported page');
     const end = Date.now() + minutes * 60000;
-    await chrome.storage.local.set({key, session: {domain: url.hostname, minutes, end}, lastMessage: ''});
+    await chrome.storage.local.set({key, session: {id: crypto.randomUUID(), domain: url.hostname, minutes, end}, lastMessage: ''});
     await chrome.alarms.create('focus', {when: end});
     refresh();
   } catch {

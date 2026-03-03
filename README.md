@@ -41,6 +41,8 @@ The Python service uses SQLite and requires the local key for writes. The extens
 
 Backend behaviour has automated tests. Unpacked extension loading and alarm behaviour require a manual Chrome/Edge check; JavaScript syntax is checked separately.
 
+Completed sessions carry a unique ID, so a retry after a lost network response does not duplicate the saved minutes. Cancel the current session before starting a new one.
+
 ## Optional local container
 
 ```sh
